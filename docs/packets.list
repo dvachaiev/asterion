@@ -1,0 +1,347 @@
+0001h - Challenge
+0002h - Response
+0003h - KeyExchange
+0004h - OnlineAnnounce
+0005h - ErrorInfo
+0006h - StatusAnnounce
+0007h - RoleStatusAnnounce
+
+000Ah - KickoutUser
+
+0022h - GamedataSend
+0023h - ReportIP
+0024h - UpdateRemainTime
+
+003Bh - StatInfoVital
+003Ch - StatInfo
+003Dh - RemoteLogVital
+003Eh - RemoteLog
+003Fh - PlayerKickout
+0040h - PlayerKickout_Re
+0041h - PlayerLogin
+0042h - PlayerLogin_Re
+0043h - PlayerOffline
+0044h - PlayerOffline_Re
+0045h - PlayerLogout
+0046h - SelectRole
+0047h - SelectRole_Re
+0048h - EnterWorld
+0049h - AnnounceProviderID
+004Ah - S2CGamedataSend
+004Bh - C2SGamedataSend
+004Dh - S2CMulticast
+004Eh - S2CBroadcast
+004Fh - PublicChat
+0050h - ChatMessage
+0051h - ChatMultiCast
+0052h - RoleList
+0053h - RoleList_Re
+0054h - CreateRole
+0055h - CreateRole_Re
+0056h - DeleteRole
+0057h - DeleteRole_Re
+0058h - UndoDeleteRole
+0059h - UndoDeleteRole_Re
+005Ah - KeepAlive
+005Bh - PlayerBaseInfo
+005Ch - PlayerBaseInfo_Re
+005Dh - PlayerHeartBeat
+005Eh - ChatSingleCast
+005Fh - PlayerStatusSync
+0060h - PrivateChat
+0062h - PlayerBaseInfoCRC
+0063h - PlayerBaseInfoCRC_Re
+0064h - SetCustomData
+0065h - SetCustomData_Re
+0066h - SetUIConfig
+0067h - SetUIConfig_Re
+0068h - GetUIConfig
+0069h - GetUIConfig_Re
+006Ah - DisconnectPlayer
+006Bh - GetPlayerBriefInfo
+006Ch - GetPlayerBriefInfo_Re
+006Dh - PlayerStatusAnnounce
+006Eh - QueryPlayerStatus
+006Fh - GetTaskData
+0070h - GetTaskData_Re
+0071h - SetTaskData
+0072h - SetTaskData_Re
+0074h - GetCustomData
+0075h - GetCustomData_Re
+0076h - GetPlayerIDByName
+0077h - GetPlayerIDByName_Re
+0078h - ChatBroadCast
+0079h - AnnounceGM
+007Ah - GMPrivilegeChange
+007Bh - AnnounceForbidInfo
+007Dh - FaceModify
+007Eh - FaceModifyCancel
+007Fh - FaceModify_Re
+0080h - SetHelpStates
+0081h - SetHelpStates_Re
+0082h - GetHelpStates
+0083h - GetHelpStates_Re
+0084h - AnnounceServerAttribute
+0085h - WorldChat
+0086h - SetChatEmotion
+
+0088h - AnnounceChallengeAlgo
+
+00CAh - AddFriend
+00CBh - AddFriend_Re
+00CEh - GetFriends
+00CFh - GetFriends_Re
+00D0h - SetGroupName
+00D1h - SetGroupName_Re
+00D2h - SetFriendGroup
+00D3h - SetFriendGroup_Re
+00D4h - DelFriend
+00D5h - DelFriend_Re
+00D6h - FriendStatus
+00D9h - GetSavedMsg
+00DAh - GetSavedMsg_Re
+00DBh - ChatRoomCreate
+00DCh - ChatRoomCreate_Re
+00DDh - ChatRoomInvite
+00DEh - ChatRoomInvite_Re
+00DFh - ChatRoomJoin
+00E0h - ChatRoomJoin_Re
+00E1h - ChatRoomLeave
+00E2h - ChatRoomExpel
+00E3h - ChatRoomSpeak
+00E4h - ChatRoomList
+00E5h - ChatRoomList_Re
+
+015Eh - GMOnlineNum
+015Fh - GMOnlineNum_Re
+0160h - GMListOnlineUser
+0161h - GMListOnlineUser_Re
+0162h - GMKickoutUser
+0163h - GMKickoutUser_Re
+0164h - GMShutup
+0165h - GMShutup_Re
+0166h - GMRestartServer
+0167h - GMRestartServer_Re
+0168h - GMKickoutRole
+0169h - GMKickoutRole_Re
+016Ah - GMShutupRole
+016Bh - GMShutupRole_Re
+016Ch - GMToggleChat
+016Dh - GMToggleChat_Re
+016Eh - GMForbidRole
+016Fh - GMForbidRole_Re
+0170h - Report2GM
+0171h - Report2GM_Re
+0172h - Complain2GM
+0173h - Complain2GM_Re
+0174h - AnnounceLinkType
+0175h - SetMaxOnlineNum
+0176h - SetMaxOnlineNum_Re
+
+017Ah - GMForbidSellPoint
+017Bh - GMForbidSellPoint_Re
+017Ch - GMControlGame
+017Dh - GMControlGame_Re
+
+0191h - StockCommission
+0192h - StockTransaction
+0195h - StockBill
+0196h - StockBill_Re
+0197h - StockAccount
+0198h - StockAccount_Re
+0199h - StockCommission_Re
+019Ah - StockTransaction_Re
+019Bh - StockCancel
+019Ch - StockCancel_Re
+
+01F7h - AccountingRequest
+01F8h - AccountingResponse
+01F9h - AnnounceZoneid
+01FAh - QueryUserPrivilege
+01FBh - QueryUserPrivilege_Re
+01FCh - QueryUserForbid
+01FDh - QueryUserForbid_Re
+01FEh - QueryRewardType
+01FFh - QueryRewardType_Re
+0200h - QueryGameServerAttr
+0201h - QueryGameServerAttr_Re
+
+0203h - AddCash
+0204h - AddCash_Re
+
+0207h - VerifyMaster
+0208h - VerifyMaster_Re
+
+0227h - MatrixChallenge
+0228h - MatrixResponse
+0229h - MatrixFailure
+
+022Ch - AddictionControl
+
+0259h - SellPoint
+025Ah - SellPoint_Re
+025Bh - GetSellList
+025Ch - GetSellList_Re
+025Dh - SellCancel
+025Eh - SellCancel_Re
+025Fh - BuyPoint
+0260h - BuyPoint_Re
+0261h - SyncSellInfo
+0262h - AnnounceSellResult
+
+0268h - TransBuyPoint
+0269h - TransBuyPoint_Re
+
+026Bh - FindSellPointInfo
+026Ch - FindSellPointInfo_Re
+
+0320h - AuctionOpen
+0321h - AuctionOpen_Re
+0322h - AuctionBid
+0323h - AuctionBid_Re
+0324h - AuctionList
+0325h - AuctionList_Re
+0326h - AuctionClose
+0327h - AuctionClose_Re
+0328h - AuctionGet
+0329h - AuctionGet_Re
+
+0330h - AuctionAttendList
+0331h - AuctionAttendList_Re
+0332h - AuctionExitBid
+0333h - AuctionExitBid_Re
+0334h - AuctionGetItem
+0335h - AuctionGetItem_Re
+0336h - SendAuctionBid
+
+0352h - BattleGetMap
+0353h - BattleGetMap_Re
+0354h - BattleChallenge
+0355h - BattleChallenge_Re
+0356h - BattleChallengeMap
+0357h - BattleChallengeMap_Re
+0358h - BattleServerRegister
+0359h - BattleStart
+035Ah - BattleStart_Re
+
+035Ch - BattleEnter
+035Dh - BattleEnter_Re
+035Eh - BattleEnterNotice
+
+0362h - BattleStatus
+0363h - BattleStatus_Re
+
+0365h - SendBattleChallenge
+0366h - BattleMapNotice
+
+0369h - DebugCommand
+
+0BD5h - DelRoleAnnounce
+
+0FA1h - TradeStart
+0FA2h - TradeStart_Re
+
+0FA4h - TradeAddGoods
+0FA5h - TradeAddGoods_Re
+0FA6h - TradeRemoveGoods
+0FA7h - TradeRemoveGoods_Re
+0FA8h - TradeMoveObj
+0FA9h - TradeMoveObj_Re
+0FAAh - TradeSubmit
+0FABh - TradeSubmit_Re
+0FACh - TradeConfirm
+0FADh - TradeConfirm_Re
+0FAEh - TradeDiscard
+0FAFh - TradeDiscard_Re
+0FB0h - TradeEnd
+0FB1h - GTradeStart
+0FB2h - GTradeStart_Re
+0FB3h - GTradeEnd
+0FB4h - GTradeDiscard
+
+0FD0h - OnDivorce
+
+1005h - SwitchServerStart
+1006h - SwitchServerCancel
+1007h - SwitchServerSuccess
+1008h - SwitchServerTimeout
+
+1068h - CheckNewMail
+1069h - AnnounceNewMail
+106Ah - GetMailList
+106Bh - GetMailList_Re
+106Ch - GetMail
+106Dh - GetMail_Re
+106Eh - GetMailAttachObj
+106Fh - GetMailAttachObj_Re
+1070h - DeleteMail
+1071h - DeleteMail_Re
+1072h - PreserveMail
+1073h - PreserveMail_Re
+1074h - PlayerSendMail
+1075h - PlayerSendMail_Re
+1076h - SysSendMail
+1077h - SysSendMail_Re
+1078h - GMailEndSync
+
+10A4h - CashLock
+10A5h - CashLock_Re
+
+10A7h - CashPasswordSet
+10A8h - CashPasswordSet_Re
+
+1194h - SystemAnnounce
+1195h - FactionCreate
+1196h - FactionCreate_Re
+1197h - FactionListMember_Re
+1198h - FactionApplyJoin_Re
+1199h - FactionAcceptJoin_Re
+119Ah - FactionExpel_Re
+119Bh - FactionBroadcastNotice_Re
+119Ch - FactionChangProclaim_Re
+119Dh - FactionMasterResign_Re
+119Eh - FactionAppoint_Re
+119Fh - FactionResign_Re
+11A0h - FactionLeave_Re
+11A1h - FactionUpgrade_Re
+11A2h - FactionDegrade_Re
+11A3h - FactionDismiss_Re
+11A4h - FactionRename_Re
+
+11FAh - AddMember
+
+11FCh - UpdateUserFaction
+
+11FFh - GetUserFaction
+
+1200h - GetFactionDetail
+
+12C1h - PlayerFactionInfo
+12C2h - PlayerFactionInfo_Re
+12C3h - FactionChat
+12C4h - FactionOPRequest
+12C5h - FactionOPRequest_Re
+
+12C8h - FactionBeginSync
+12C9h - FactionBeginSync_Re
+12CAh - FactionEndSync
+
+12CCh - FactionAcceptJoin
+
+12CEh - GetFactionBaseInfo
+12CFh - GetFactionBaseInfo_Re
+12D0h - GetPlayerFactionInfo
+12D1h - GetPlayerFactionInfo_Re
+12D2h - DelFactionAnnounce
+
+1389h - ACReport
+138Ah - ACWhoAmI
+138Bh - ACRemoteCode
+
+13A0h - ACProtoStat
+13A2h - ACStatusAnnounce
+
+13A5h - ACReportCheater
+13A6h - ACTriggerQuestion
+13A7h - ACQuestion
+13A8h - ACAnswer
