@@ -20,5 +20,26 @@ def bin2hex(seq):
 b2hex = b2h = bin2hex
 
 
+def bin2int(seq, bigendian=True):
+    res = 0L
+    if not bigendian:
+        seq = seq[::-1]
+    for i in seq:
+        res = (res << 8) + ord(i)
+    return res
+b2i = bin2int
+
+
+def int2bin(num, bigendian=True):
+    res = ''
+    while num:
+        res += chr(num & 0xff)
+        num >>= 8
+    if bigendian:
+        res = res[::-1]
+    return res
+i2b = int2bin
+
+
 if __name__ == "__main__":
     print bin2hex(genbignum(16))
