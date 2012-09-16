@@ -6,16 +6,23 @@ from bitstring import BitStream
 
 class MPPCDecoder(object):
 
+    max_history = 8191
+
+    def __init__(self):
+        self.history = ""
+        self.res = ""
+
     def flush_history(self):
         self.history = ""
 
     def add_to_history(self, v):
-        self.history += v
+        self.history = self.history[-self.max_history + len(v):] + v
+        self.res += v
 
     def decompress(self, data):
         stream = BitStream(bytes=data)
 
-        self.flush_history()
+        self.res = ''
         offset = None
         marker_off = False
         while len(stream.bin):
@@ -30,12 +37,12 @@ class MPPCDecoder(object):
                     r = 9
                 elif stream.bin.startswith("1111"):       # 0 <= offset < 64
                     offset = stream[4:10].uint
-                    marker_off = True
-                    r = 10
                     # Guess!!
                     if not offset:
-                        marker_off = False
-                        #r = 8
+                        print stream[10:].bin
+                        break
+                    marker_off = True
+                    r = 10
                 elif stream.bin.startswith("1110"):       # 64 <= offset < 320
                     offset = stream[4:12].uint
                     offset += 64
@@ -73,7 +80,7 @@ class MPPCDecoder(object):
 
             stream = stream[r:]
         assert not marker_off
-        return self.history
+        return self.res
 
 
 if __name__ == "__main__":
