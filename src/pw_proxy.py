@@ -4,6 +4,7 @@
 import sys
 import md5
 import hmac
+import time
 import socket
 
 from twisted.internet import reactor
@@ -121,7 +122,7 @@ class Handler(object):
         return packet
 
     def log_packet(self, direction, state, data):
-        print >> self.out_stream, ' | '.join((direction, state, utils.b2h(data)))
+        print >> self.out_stream, ' | '.join((time.ctime(), direction, state, len(data), utils.b2h(data)))
 
 
 def parse_cui(data):
