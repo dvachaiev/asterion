@@ -73,11 +73,21 @@ class ProxyFactory(protocol.ClientFactory):
 
 class Handler(object):
 
-    def __init__(self):
+    def __init__(self, output=None):
         self._in_cipher = None
         self._in_decomp = None
         self._out_cipher = None
-        self.out_stream = sys.stdout
+        self._do_close = False
+        if output is None:
+            self.out_stream = sys.stdout
+        elif isinstance(output, str):
+            self.out_stream = open(output, 'w')
+            self._do_close = True
+        else:
+            self.out_stream = output
+
+    def __del__(self):
+        self.out_stream.close()
 
     def handle(self, data, is_in):
         if is_in:
@@ -86,8 +96,9 @@ class Handler(object):
         else:
             args = ('out', self._out_cipher, None)
             handler = self._handle_out
-        packet = self._parse(data, *args)
-        handler(packet)
+        packets = self._parse(data, *args)
+        for packet in packets:
+            handler(packet)
 
     def _handle_in(self, packet):
         if packet['opcode'] == 2:
@@ -98,7 +109,7 @@ class Handler(object):
         if packet['opcode'] == 2:
             self._in_key = packet['key']
             self._in_cipher = rc4.rc4(hmac.new(self._login, self._hash + self._in_key).digest())
-            self._in_decomp = mppc.MPPCDecoder()
+            self._in_decomp = mppc.mppc()
         elif packet['opcode'] == 3:
             self._login = packet['login']
             self._hash = packet['hash']
@@ -109,20 +120,30 @@ class Handler(object):
             data = rc4.crypt(data, cipher)
             self.log_packet(direction, 'decr  ', data)
         if decomp:
-            data = decomp.decompress(data)
+            data = decomp.send(data)
             self.log_packet(direction, 'decomp', data)
         # Parse packet
-        opcode, data = parse_cui(data)
-        length, data = parse_cui(data)
-        assert len(data) == length, "Real length - %s, expected - %s" % (len(data), length)
-        if opcode in PARSE_TABLE:
-            packet = PARSE_TABLE[opcode](data)
-        else:
-            packet = dict(opcode=opcode, unknown=data)
-        return packet
+        packets = []
+        while data:
+            opcode, data = parse_cui(data)
+            length, data = parse_cui(data)
+            if len(data) != length and decomp:
+                print "Not enought data, trying continue..."
+                data += decomp.next()
+            assert len(data) == length, "Real length - %s, expected - %s" % (len(data), length)
+            if opcode in PARSE_TABLE:
+                packet = PARSE_TABLE[opcode](data)
+            else:
+                packet = dict(opcode=opcode, unknown=data)
+            packets.append(packet)
+            if decomp:
+                data = decomp.next()
+            else:
+                data = None
+        return packets
 
     def log_packet(self, direction, state, data):
-        print >> self.out_stream, ' | '.join((time.ctime(), direction, state, len(data), utils.b2h(data)))
+        print >> self.out_stream, ' | '.join((time.ctime(), direction, state, str(len(data)), utils.b2h(data)))
 
 
 def parse_cui(data):
@@ -151,7 +172,7 @@ def parse_cui(data):
         length = 5
         diff = 0xe000000000
     else:
-        raise RuntimeError("Could parse cui: 0x%X" % data[0])
+        raise RuntimeError("Could parse cui: 0x%X" % ord(data[0]))
     res = utils.bin2int(data[:length]) - diff
     return res, data[length:]
 
@@ -203,5 +224,21 @@ PARSE_TABLE = {
 
 if __name__ == "__main__":
     log.startLogging(sys.stdout)
-    reactor.listenTCP(port, ProxyFactory((server, port), Handler()), interface="0.0.0.0")
+    reactor.listenTCP(port, ProxyFactory((server, port), Handler('../other/dumps/packets.log')), interface="0.0.0.0")
     reactor.run()
+    #_mppc = mppc.mppc()
+    #for line in open('decr_stream.log'):
+        #s = ''.join(chr(int(i, 16)) for i in line.split())
+        #data = _mppc.send(s)
+        #while data:
+            ##print utils.b2h(data)
+            #opcode, data = parse_cui(data)
+            #length, data = parse_cui(data)
+            #print hex(opcode), length
+            ##assert len(data) == length, "Real length - %s, expected - %s" % (len(data), length)
+            #if len(data) != length:
+                #print "Not enought data, trying continue..."
+                #data += _mppc.next()
+                #if len(data) != length:
+                    #print "Real length - %s, expected - %s" % (len(data), length)
+            #data = _mppc.next()
