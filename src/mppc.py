@@ -10,19 +10,27 @@ class MPPCDecoder(object):
 
     def __init__(self):
         self.history = ""
-        self.res = ""
+        self.in_buf = BitStream()
+        self.out_buf = ""
 
     def flush_history(self):
         self.history = ""
 
     def add_to_history(self, v):
         self.history = self.history[-self.max_history + len(v):] + v
-        self.res += v
+        self.out_buf += v
+
+    def process_tuple(self, offset, length):
+        if length > offset:
+            v = self.history[-offset:] * length + self.history[-offset:-offset + length % offset]
+        else:
+            v = self.history[-offset:-offset + length]
+        self.add_to_history(v)
 
     def decompress(self, data):
         stream = BitStream(bytes=data)
 
-        self.res = ''
+        self.out_buf = ''
         offset = None
         marker_off = False
         while len(stream.bin):
@@ -75,12 +83,10 @@ class MPPCDecoder(object):
                 assert offset <= len(self.history)
                 assert length <= len(self.history)
 
-                for i in xrange(length):
-                    self.add_to_history(self.history[-offset])
+                self.process_tuple(offset, length)
 
             stream = stream[r:]
-        assert not marker_off
-        return self.res
+        return self.out_buf
 
 
 if __name__ == "__main__":
