@@ -1,6 +1,7 @@
 #!/usr/bin/python
 #-*- coding: utf-8 -*-
 
+import os
 import sys
 import md5
 import hmac
@@ -10,33 +11,40 @@ import socket
 from twisted.internet import reactor
 from twisted.internet import protocol
 from twisted.python import log
+from twisted.python import usage
 
 import rc4
 import mppc
 import utils
 
 
-server = '195.211.129.79'
+server = '195.211.129.81'
 port = 29000
+logs_dir = '.'
 
 
 class ProxyProtocol(protocol.Protocol):
 
-    def __init__(self, out=None):
-        self._out = out
-        self.is_in = False
-        if out:
-            out._out = self
-            self.is_in = True
-
     def connectionMade(self):
-        if not self._out:   #we are just listen, so we should create another protocol
-            self.factory.connectToServer()
+        self._out = getattr(self.factory, 'l_prot', None)
+        if self._out: # if this connection from proxy to server
+            del self.factory.l_prot # we don't need it anymore
+            self.is_in = True
+            self.handler = self._out.handler
+            self._out._out = self
+        else: #connection from client to proxy
+            self.is_in = False
+            self.handler = self.factory.handler()
+            # Create connection from proxy to server
+            factory = protocol.ClientFactory()
+            factory.protocol = ProxyProtocol
+            factory.l_prot = self
+            reactor.connectTCP(*self.factory.remote_addr, factory=factory)
 
     def dataReceived(self, data):
         log.msg("Received data: %s" % utils.b2h(data))
         try:
-            self.factory.handler.handle(data, self.is_in)
+            self.handler.handle(data, self.is_in)
         except:
             log.err()
         self._out.transport.write(data)
@@ -52,30 +60,13 @@ class ProxyProtocol(protocol.Protocol):
         self.transport.loseConnection()
 
 
-class ProxyFactory(protocol.ClientFactory):
-
-    protocol = ProxyProtocol
-
-    def __init__(self, remote_addr, handler):
-        self._in = None
-        self.remote_addr = remote_addr
-        self.handler = handler
-
-    def connectToServer(self):
-        reactor.connectTCP(*self.remote_addr, factory=self)
-
-    def buildProtocol(self, addr):
-        p = self.protocol(self._in)
-        p.factory = self
-        self._in = self._in or p
-        return p
-
-
 class Handler(object):
 
     def __init__(self, output=None):
+        self._in_buf = ''
         self._in_cipher = None
         self._in_decomp = None
+        self._out_buf = ''
         self._out_cipher = None
         self._do_close = False
         if output is None:
@@ -91,12 +82,16 @@ class Handler(object):
 
     def handle(self, data, is_in):
         if is_in:
-            args = ('in ', self._in_cipher, self._in_decomp)
+            args = ('in ', self._in_cipher, self._in_decomp, self._in_buf)
             handler = self._handle_in
         else:
-            args = ('out', self._out_cipher, None)
+            args = ('out', self._out_cipher, None, self._out_buf)
             handler = self._handle_out
-        packets = self._parse(data, *args)
+        packets, buf = self._parse(data, *args)
+        if is_in:
+            self._in_buf = buf
+        else:
+            self._out_buf = buf
         for packet in packets:
             handler(packet)
 
@@ -114,36 +109,51 @@ class Handler(object):
             self._login = packet['login']
             self._hash = packet['hash']
 
-    def _parse(self, data, direction, cipher, decomp):
-        self.log_packet(direction, 'raw   ', data)
+    def _parse(self, data, direction, cipher, decomp, buf):
         if cipher:
             data = rc4.crypt(data, cipher)
-            self.log_packet(direction, 'decr  ', data)
         if decomp:
             data = decomp.send(data)
-            self.log_packet(direction, 'decomp', data)
         # Parse packet
         packets = []
         while data:
+            data = full_data = buf + data
+            buf = ''
             opcode, data = parse_cui(data)
             length, data = parse_cui(data)
-            if len(data) != length and decomp:
-                print "Not enought data, trying continue..."
-                data += decomp.next()
-            assert len(data) == length, "Real length - %s, expected - %s" % (len(data), length)
-            if opcode in PARSE_TABLE:
-                packet = PARSE_TABLE[opcode](data)
+            if len(data) < length and decomp:
+                log.msg("Not enough data...")
+                buf = full_data
             else:
-                packet = dict(opcode=opcode, unknown=data)
-            packets.append(packet)
+                if len(data) > length:
+                    data, buf = data[:length], data[length:]
+                assert len(data) == length, "Real length - %s, expected - %s, data - %s" % (len(data), length, utils.b2h(data))
+                self.log_packet(direction, opcode, data)
+                if opcode in PARSE_TABLE:
+                    packet = PARSE_TABLE[opcode](data)
+                else:
+                    packet = dict(opcode=opcode, unknown=data)
+                packets.append(packet)
             if decomp:
                 data = decomp.next()
             else:
-                data = None
-        return packets
+                data = ''
+        return packets, buf
 
-    def log_packet(self, direction, state, data):
-        print >> self.out_stream, ' | '.join((time.ctime(), direction, state, str(len(data)), utils.b2h(data)))
+    def log_packet(self, direction, opcode, data):
+        print >> self.out_stream, ' | '.join((time.ctime(), 'h', direction, '%X' % opcode, str(len(data)), utils.b2h(data)))
+        print >> self.out_stream, ' | '.join((time.ctime(), 'a', direction, '%X' % opcode, str(len(data)), data))
+
+
+def get_filename(directory):
+    pattern = 'packets_%s%%s.dump' % ("_".join(str(i) for i in time.localtime()[:6]))
+    pattern = os.path.join(directory, pattern)
+    suffix = ''
+    i = 0
+    while os.path.exists(pattern % suffix):
+        suffix = '_%s' % i
+        i += 1
+    return pattern % suffix
 
 
 def parse_cui(data):
@@ -222,23 +232,32 @@ PARSE_TABLE = {
         0x03: parse_03,
 }
 
+
+class Options(usage.Options):
+
+    optParameters = [
+            ['remote-host', 'r', server],
+            ['logs-dir', 'l', logs_dir],
+    ]
+
+
 if __name__ == "__main__":
+    # Parse command-line options
+    config = Options()
+    try:
+        config.parseOptions() # When given no argument, parses sys.argv[1:]
+    except usage.UsageError, errortext:
+        print '%s: %s' % (sys.argv[0], errortext)
+        print '%s: Try --help for usage details.' % (sys.argv[0])
+        sys.exit(1)
+    server = config['remote-host']
+    logs_dir = config['logs-dir']
+
+    # Start proxy
     log.startLogging(sys.stdout)
-    reactor.listenTCP(port, ProxyFactory((server, port), Handler('../other/dumps/packets.log')), interface="0.0.0.0")
+    factory = protocol.ServerFactory()
+    factory.protocol = ProxyProtocol
+    factory.remote_addr = (server, port)
+    factory.handler = lambda: Handler(get_filename(logs_dir))
+    reactor.listenTCP(port, factory, interface="0.0.0.0")
     reactor.run()
-    #_mppc = mppc.mppc()
-    #for line in open('decr_stream.log'):
-        #s = ''.join(chr(int(i, 16)) for i in line.split())
-        #data = _mppc.send(s)
-        #while data:
-            ##print utils.b2h(data)
-            #opcode, data = parse_cui(data)
-            #length, data = parse_cui(data)
-            #print hex(opcode), length
-            ##assert len(data) == length, "Real length - %s, expected - %s" % (len(data), length)
-            #if len(data) != length:
-                #print "Not enought data, trying continue..."
-                #data += _mppc.next()
-                #if len(data) != length:
-                    #print "Real length - %s, expected - %s" % (len(data), length)
-            #data = _mppc.next()
