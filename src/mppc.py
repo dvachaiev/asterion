@@ -85,7 +85,7 @@ def _mppc():
     stream = BitStream()
 
     while True:
-        data = yield None
+        data = yield ''
         stream += BitStream(bytes=data)
         while len(stream.bin) >= 8:
             offset = None
@@ -147,7 +147,7 @@ def _mppc():
 
 def mppc():
     gen = _mppc()
-    assert gen.next() is None
+    assert gen.next() is ''
     return gen
 
 
