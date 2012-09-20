@@ -89,10 +89,10 @@ class Handler(object):
 
     def handle(self, data, is_in):
         if is_in:
-            args = ('in ', self._in_cipher, self._in_decomp, self._in_buf)
+            args = ('s', self._in_cipher, self._in_decomp, self._in_buf)
             handler = self._handle_in
         else:
-            args = ('out', self._out_cipher, None, self._out_buf)
+            args = ('c', self._out_cipher, None, self._out_buf)
             handler = self._handle_out
         packets, buf = self._parse(data, *args)
         if is_in:
@@ -106,6 +106,10 @@ class Handler(object):
         if packet['opcode'] == 2:
             self._out_key = packet['key']
             self._out_cipher = rc4.rc4(hmac.new(self._login, self._hash + self._out_key).digest())
+        elif packet['opcode'] == 0:
+            for opcode, data in packet['packets']:
+                self.log_packet('s', opcode, data)
+
 
     def _handle_out(self, packet):
         if packet['opcode'] == 2:
@@ -139,7 +143,8 @@ class Handler(object):
                 if opcode in PARSE_TABLE:
                     packet = PARSE_TABLE[opcode](data)
                 else:
-                    packet = dict(opcode=opcode, unknown=data)
+                    packet = dict(unknown=data)
+                packet['opcode'] = opcode
                 packets.append(packet)
             if decomp:
                 data = decomp.next()
@@ -149,8 +154,8 @@ class Handler(object):
 
     def log_packet(self, direction, opcode, data):
         l_time = time.ctime().split()[3]
-        print >> self.out_stream, ' | '.join((l_time, 'h', direction, '%X' % opcode, str(len(data)), utils.b2h(data)))
-        print >> self.out_stream, ' | '.join((l_time, 'a', direction, '%X' % opcode, str(len(data)), data))
+        print >> self.out_stream, ' | '.join((l_time, 'h', direction, '0x%X' % opcode, str(len(data)), utils.b2h(data)))
+        print >> self.out_stream, ' | '.join((l_time, 'a', direction, '0x%X' % opcode, str(len(data)), data))
 
 
 def get_filename(directory):
@@ -195,9 +200,20 @@ def parse_cui(data):
     return res, data[length:]
 
 
+def parse_00(data):
+    names = ('packets', )
+    packets = []
+    while data:
+        opcode, data = parse_cui(data)
+        length, data = parse_cui(data)
+        assert len(data) >= length, 'Error while parsing subpackets from packet 0x00'
+        packets.append((opcode, data[:length]))
+        data = data[length:]
+    loc = locals()
+    return dict((name, loc[name]) for name in names)
+
 def parse_01(data):
-    names = ('opcode', 'key', 'version', 'auth_type', 'crc', 'msg_code')
-    opcode = 1
+    names = ('key', 'version', 'auth_type', 'crc', 'msg_code')
     key_len, data = parse_cui(data)
     key, data = data[:key_len], data[key_len:]
     version, data = tuple(ord(i) for i in data[:4]), data[4:]
@@ -210,8 +226,7 @@ def parse_01(data):
     return dict((name, loc[name]) for name in names)
 
 def parse_02(data):
-    names = ('opcode', 'key')
-    opcode = 2
+    names = ('key', )
     key_len, data = parse_cui(data)
     key, data = data[:key_len], data[key_len:]
     unk, data = ord(data[0]), data[1:]
@@ -221,8 +236,7 @@ def parse_02(data):
     return dict((name, loc[name]) for name in names)
 
 def parse_03(data):
-    names = ('opcode', 'login', 'hash')
-    opcode = 3
+    names = ('login', 'hash')
     login_len, data = parse_cui(data)
     login, data = data[:login_len], data[login_len:]
     hash_len, data = parse_cui(data)
@@ -235,6 +249,7 @@ def parse_03(data):
 
 
 PARSE_TABLE = {
+        0x00: parse_00,
         0x01: parse_01,
         0x02: parse_02,
         0x03: parse_03,
