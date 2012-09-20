@@ -6,6 +6,7 @@ import sys
 import md5
 import hmac
 import time
+import shutil
 import socket
 
 from twisted.internet import reactor
@@ -54,6 +55,7 @@ class ProxyProtocol(protocol.Protocol):
         if self._out:
             self._out.closeConnection()
             self._out = None
+        del self.handler
 
     def closeConnection(self):
         self._out = None
@@ -78,7 +80,12 @@ class Handler(object):
             self.out_stream = output
 
     def __del__(self):
-        self.out_stream.close()
+        if self._do_close:
+            self.out_stream.close()
+            if hasattr(self, '_login'):
+                path, fname = os.path.split(self.out_stream.name)
+                fname = fname.replace('packets', self._login, 1)
+                shutil.move(self.out_stream.name, os.path.join(path, fname))
 
     def handle(self, data, is_in):
         if is_in:
@@ -141,12 +148,13 @@ class Handler(object):
         return packets, buf
 
     def log_packet(self, direction, opcode, data):
-        print >> self.out_stream, ' | '.join((time.ctime(), 'h', direction, '%X' % opcode, str(len(data)), utils.b2h(data)))
-        print >> self.out_stream, ' | '.join((time.ctime(), 'a', direction, '%X' % opcode, str(len(data)), data))
+        l_time = time.ctime().split()[3]
+        print >> self.out_stream, ' | '.join((l_time, 'h', direction, '%X' % opcode, str(len(data)), utils.b2h(data)))
+        print >> self.out_stream, ' | '.join((l_time, 'a', direction, '%X' % opcode, str(len(data)), data))
 
 
 def get_filename(directory):
-    pattern = 'packets_%s%%s.dump' % ("_".join(str(i) for i in time.localtime()[:6]))
+    pattern = 'packets_%s%%s.log' % ("_".join(str(i) for i in time.localtime()[:6]))
     pattern = os.path.join(directory, pattern)
     suffix = ''
     i = 0
