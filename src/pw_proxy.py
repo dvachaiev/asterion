@@ -115,7 +115,7 @@ class Handler(object):
         if packet['opcode'] == 2:
             self._in_key = packet['key']
             self._in_cipher = rc4.rc4(hmac.new(self._login, self._hash + self._in_key).digest())
-            self._in_decomp = mppc.mppc()
+            self._in_decomp = mppc.MPPCDecoder()
         elif packet['opcode'] == 3:
             self._login = packet['login']
             self._hash = packet['hash']
@@ -124,20 +124,19 @@ class Handler(object):
         if cipher:
             data = rc4.crypt(data, cipher)
         if decomp:
-            data = decomp.send(data)
+            data = decomp.decompress(data)
         # Parse packet
+        buf += data
         packets = []
-        while data:
-            data = full_data = buf + data
-            buf = ''
+        while buf:
+            data = buf
             opcode, data = parse_cui(data)
             length, data = parse_cui(data)
             if len(data) < length and decomp:
                 log.msg("Not enough data...")
-                buf = full_data
+                break
             else:
-                if len(data) > length:
-                    data, buf = data[:length], data[length:]
+                data, buf = data[:length], data[length:]
                 assert len(data) == length, "Real length - %s, expected - %s, data - %s" % (len(data), length, utils.b2h(data))
                 self.log_packet(direction, opcode, data)
                 if opcode in PARSE_TABLE:
@@ -146,10 +145,6 @@ class Handler(object):
                     packet = dict(unknown=data)
                 packet['opcode'] = opcode
                 packets.append(packet)
-            if decomp:
-                data = decomp.next()
-            else:
-                data = ''
         return packets, buf
 
     def log_packet(self, direction, opcode, data):
