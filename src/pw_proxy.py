@@ -48,6 +48,8 @@ class ProxyProtocol(protocol.Protocol):
             self.handler.handle(data, self.is_in)
         except:
             log.err()
+            self.closeConnection()
+            return
         self._out.transport.write(data)
 
     def connectionLost(self, why):
