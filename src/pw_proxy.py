@@ -227,8 +227,8 @@ def parse_02(data):
     key_len, data = parse_cui(data)
     key, data = data[:key_len], data[key_len:]
     unk, data = ord(data[0]), data[1:]
-    assert not data
     assert not unk
+    assert not data, utils.bin2hex(data)
     loc = locals()
     return dict((name, loc[name]) for name in names)
 
@@ -239,8 +239,11 @@ def parse_03(data):
     hash_len, data = parse_cui(data)
     hash, data = data[:hash_len], data[hash_len:]
     unk, data = ord(data[0]), data[1:]
-    assert not data
     assert not unk
+    len_added, data = parse_cui(data)
+    added, data = data[:len_added], data[len_added:]
+    assert added == '\xff' * 4, utils.bin2hex(added)
+    assert not data, utils.bin2hex(data)
     loc = locals()
     return dict((name, loc[name]) for name in names)
 
