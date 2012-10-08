@@ -1,0 +1,103 @@
+opcode  packet name
+0x01    SM_LOGIN_CHALLENGE server->client
+0x03    CM_LOGIN_ANNOUNCE client->server
+0x02    SM_KEY server->client
+0x02    CM_KEY client->server [encrypted]
+
+0x04    SM_LOGIN_DONE server->client [encrypted + packed]
+OR
+0x05    SM_LOGIN_ERROR server->client
+
+
+SM_LOGIN_CHALLENGE
+byte opcode; // = 1 opcode 'SM_LOGIN_CHALLENGE'
+byte pktlen; // = 41 length of the packet stating from next byte
+byte keylen; // = 16 length of the key
+byte[16] key1; // this key is for auth only
+byte[4] server_version; // = { 0 , 1 , 4 , 0 } or { 0 , 1 , 4 , 1 }
+byte auth_type; // Auth type: 0 = md5 / 1 = sha
+byte crclen; // = x length of the keyring
+byte[] crc = "3000001b3f4aeff54e";
+
+
+Login should be converted to lowercase
+
+
+CM_LOGIN_ANNOUNCE
+byte opcode; // = 3 opcode 'CM_LOGIN_ANNOUNCE'
+byte pktlen; // length of the packet stating from next byte
+byte loginlen; // length of the login
+byte[] login; // user login
+byte hashlen; // = 16 for md5, 32 for sha2
+byte[] hash; // hash
+byte unk; // 0 ???
+
+
+Hash:
+HMAC_MD5( MD5( login + password), key1); // for MD5 auth
+SHA2_256( password); // for sha auth
+
+
+If auth fails — SM_LOGIN_ERROR is called, if success — both SM_KEY & CM_KEY keyexchange are called.
+
+
+SM_KEY
+byte opcode; // = 2 opcode 'SM_KEY'
+byte pktlen; // length of the packet stating from next byte
+byte keylen; // length of the key
+byte[] key2; // key2
+byte unk; // 0 ???
+
+
+CM_KEY - should be already encrypted
+byte opcode; // = 2 opcode 'SM_KEY'
+byte pktlen; // length of the packet stating from next byte
+byte keylen; // length of the key
+byte[] key2; // key3
+byte unk; // 0 ???
+
+
+Key for RC4 is HMAC_MD5(login, HMAC_MD5(MD5(login + password), key1) + keyX)
+key1 from SM_LOGIN_CHALLENGE
+key2 from SM_KEY
+key3 from CM_KEY
+keyX is key2 for init RC4 client->server and key3 for init RC4 server->client
+
+For encryption (client -> server) - RC4(HMAC_MD5(login, HMAC_MD5(MD5(login + password), key1) + key2))
+For decryption (server -> client) - RC4(HMAC_MD5(login, HMAC_MD5(MD5(login + password), key1) + key3))
+
+
+SM_LOGIN_ERROR
+byte opcode; // = 5 opcode 'SM_LOGIN_ERROR'
+byte pktlen; // length of the packet stating from next byte
+byte error_code; // error code { 1 = Unknown error, 2 = User not exist, 3 = Invalid login, 4 = Time is out }
+byte messagelen; // length of the error message
+byte[] message; // error message
+
+
+>>> CM_LOGIN_DONE - OnlineAnnounce (0x04)
+byte opcode; // = 4 opcode OnlineAnnounce
+byte pktlen; // length of the packet stating from next byte
+byte[4] user_id ???
+byte[4] another_id ??? session_id???
+00 00 00 00 
+0B 
+00 00 00 00 FF FF FF FF 
+00 00 00 00 00 00 00
+
+<<< RoleList - 0x52
+byte opcode; // = 52 opcode RoleList
+byte pktlen; // length of the packet stating from next byte
+byte[4] user_id ???
+byte[8] hero_num??? 00 00 00 00 FF FF FF FF - first, 00 00 00 00 00 00 00 00, 00 00 00 00 00 00 00 01, 00 00 00 00 00 00 00 02
+
+>>> ???? - 0x8F
+byte opcode; // = 8F
+byte pktlen; // length of the packet stating from next byte
+byte[4] user_id ???
+byte[4] another_id ??? session_id???
+50 57 49 76 
+2F 32 5F B2 
+2F 32 5F B2
+
+>>> RoleList_Re - 0x53
