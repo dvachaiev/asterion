@@ -66,7 +66,7 @@ class ProxyProtocol(protocol.Protocol):
 
 class Handler(object):
 
-    def __init__(self, output=None):
+    def __init__(self, output=None, log_opcodes=None, skip_opcodes=None):
         self._in_buf = ''
         self._in_cipher = None
         self._in_decomp = None
@@ -80,6 +80,8 @@ class Handler(object):
             self._do_close = True
         else:
             self.out_stream = output
+        self.log_opcodes = log_opcodes
+        self.skip_opcodes = skip_opcodes
 
     def __del__(self):
         if self._do_close:
@@ -111,7 +113,6 @@ class Handler(object):
         elif packet['opcode'] == 0:
             for opcode, data in packet['packets']:
                 self.log_packet('s', opcode, data)
-
 
     def _handle_out(self, packet):
         if packet['opcode'] == 2:
@@ -150,9 +151,15 @@ class Handler(object):
         return packets, buf
 
     def log_packet(self, direction, opcode, data):
-        l_time = time.ctime().split()[3]
-        print >> self.out_stream, ' | '.join((l_time, 'h', direction, '0x%X' % opcode, str(len(data)), utils.b2h(data)))
-        print >> self.out_stream, ' | '.join((l_time, 'a', direction, '0x%X' % opcode, str(len(data)), data))
+        if not ((self.log_opcodes and opcode not in self.log_opcodes) or (self.skip_opcodes and opcode in self.skip_opcodes)):
+            # Packet will be logged:
+            # if log_opcodes is not set
+            # if log_opcodes is set and opcode present in log_opcodes
+            # if skip_opcodes is not set
+            # if skip_opcodes is set and opcode is not present into skip_opcodes
+            l_time = time.ctime().split()[3]
+            print >> self.out_stream, ' | '.join((l_time, 'h', direction, '0x%X' % opcode, str(len(data)), utils.b2h(data)))
+            print >> self.out_stream, ' | '.join((l_time, 'a', direction, '0x%X' % opcode, str(len(data)), data))
 
 
 def get_filename(directory):
@@ -215,6 +222,7 @@ def parse_01(data):
     key, data = data[:key_len], data[key_len:]
     version, data = tuple(ord(i) for i in data[:4]), data[4:]
     auth_type, data = parse_cui(data)
+    assert auth_type is 0, "Unsupported auth_type %s" % auth_type
     crc_len, data = parse_cui(data)
     crc, data = data[:crc_len], data[crc_len:]
     msg_code, data = parse_cui(data)
@@ -261,7 +269,25 @@ class Options(usage.Options):
     optParameters = [
             ['remote-host', 'r', server],
             ['logs-dir', 'l', logs_dir],
+            ['filter', 'f', None, 'List of opcodes that should be logged, all other packets will be skipped. Format: 123,0x7c,0x7d:128'],
+            ['exclude', 'e', None, "List of opcodes which wouldn't be logged, it has highest priority than 'filter' option"],
     ]
+
+
+def parse_opcodes_list(value):
+    """Parses list of opcodes separated by comma, supported range separated by ':' both ends are included.
+    Returns set of opcodes
+    """
+    res = set()
+    for opcode in value.split(','):
+        if ':' in opcode:
+            range_ = [int(val, 0) for val in opcode.split(':', 1)]
+            res.update(xrange(*range_))
+            opcode = range_[1]
+        else:
+            opcode = int(opcode, 0)
+        res.add(opcode)
+    return res
 
 
 if __name__ == "__main__":
@@ -275,12 +301,14 @@ if __name__ == "__main__":
         sys.exit(1)
     server = config['remote-host']
     logs_dir = config['logs-dir']
+    filter_ = parse_opcodes_list(config['filter']) if config['filter'] else config['filter']
+    exclude = parse_opcodes_list(config['exclude']) if config['exclude'] else config['exclude']
 
     # Start proxy
     log.startLogging(sys.stdout)
     factory = protocol.ServerFactory()
     factory.protocol = ProxyProtocol
     factory.remote_addr = (server, port)
-    factory.handler = lambda: Handler(get_filename(logs_dir))
+    factory.handler = lambda: Handler(get_filename(logs_dir, filter_, exclude))
     reactor.listenTCP(port, factory, interface="0.0.0.0")
     reactor.run()
